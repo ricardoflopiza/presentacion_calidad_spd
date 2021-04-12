@@ -1,0 +1,1019 @@
+---
+title: "Capacitación paquete calidad"
+subtitle: "calidad"
+author: 
+date: '`r Sys.Date()`'
+output:
+  xaringan::moon_reader:
+    seal: false
+    #lib_dir: libs
+    css: xaringan-themer.css
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: False
+---
+
+class: center, middle
+
+.linea-superior[]
+.linea-inferior[]
+
+<img src="imagenes/logo_portada2.png" width="200" />
+
+## Capacitación en uso paquete calidad
+
+## Proyecto Estratégico Servicios Compartidos para la Producción Estadística
+
+### Abril 2021
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = TRUE)
+knitr::opts_chunk$set(message = FALSE, warning = F) 
+options(scipen = "999")
+```
+
+```{r xaringan-themer, include=FALSE, warning=FALSE}
+library(xaringanthemer)
+```
+
+---
+
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Contenidos del taller
+
+- Elementos generales del estándar INE
+
+--
+
+- Conceptos generales del paquete `survey`
+
+--
+
+- Uso básico del paquete `calidad`
+
+--
+
+**Objetivo del taller**
+
+- Habilitar a los asistentes en el uso del paquete calidad
+
+--
+
+### Asumiremos un conocimiento básico de R
+
+---
+
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Estándar de calidad INE
+
+Desde 2020, el INE cuenta con un [estándar](https://www.ine.cl/docs/default-source/documentos-de-trabajo/20200318-lineamientos-medidas-de-precisi%C3%B3n.pdf?sfvrsn=f1ab2dbe_4) para evaluar la calidad de estimaciones provenientes de encuestas de hogares
+
+
+.center[
+<img src="imagenes/estandar.png" width="600" />
+]
+
+--
+
+Nos permite determinar si una estimación es no **fiable, poco fiable o no fiable** 
+
+--
+
+Nos orienta respecto a si un tabulado debe ser publicado o no
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Aspectos generales del estándar
+
+Existe un flujo, que nos permite etiquetar **automáticamente** cada estimación 
+
+--
+
+.center[
+<img src="imagenes/flujo.png" width="600" />
+]
+
+---
+
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Aspectos generales del estándar
+
+## El flujo establece caminos diferenciados
+
+--
+
+### Estimaciones de proporción (o razón) entre **0 y 1**
+
+- Tamaño muestral
+- Grados de libertad
+- .red[Error estándar] 
+
+--
+
+### Resto de estimaciones
+
+- Tamaño muestral
+- Grados de libertad
+- .red[Coeficiente de variación] 
+ 
+
+### En un caso usamos el SE y en otro el CV
+
+---
+
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Introducción paquete calidad
+
+### ¿Cómo pasar del documento a la práctica?
+
+.center[
+<img src="https://media.giphy.com/media/a5viI92PAF89q/giphy.gif" width="200" />
+]
+
+--
+
+Existen múltiples herramientas (Stata, R, SAS, Python) y todas son válidas
+
+--
+
+Múltiples modalidades dentro de cada herramienta (libertad total, scripts estandarizados, funciones, etc)
+
+--
+
+Es útil contar con una herramienta que **estandarice** los criterios de calidad
+
+
+
+---
+
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Introducción paquete calidad
+
+Una posibilidad es el uso de un **paquete (librería)**
+
+--
+
+El paquete `calidad` implementa el estándar mediante `R`
+
+--
+
+### Objetivos del paquete
+
+- Facilitar la aplicación del estándar a usuarios externos
+- Aumentar la eficiencia en el trabajo de los analistas
+- Reducir la probabilidad de error en la implementación
+
+--
+
+El paquete `calidad` combina el estándar del INE con el paquete `survey`, desarrollado por Thomas Lumley
+
+
+.center[
+<img src="imagenes/lumley_ine.png" width="350" />
+]
+
+--
+
+.center[
+### Revisaremos velozmente el paquete survey
+]
+
+
+---
+
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Brevísima revisión de survey
+
+Usaremos los datos del trimestre NDE-2020 
+
+
+```{r}
+library(readr)
+library(tidyverse)
+ene <- read_delim("data/ene-2020-12-nde.csv", delim = ";")
+
+```
+
+--
+
+Construyamos algunas variables necesarias para calcular indicadores relevantes del mercado laboral
+
+```{r}
+ene <- ene %>% 
+  mutate(fdt = if_else(cae_especifico >= 1 & cae_especifico <= 9, 1, 0), # fuerza de trabajo
+         ocupado = if_else(cae_especifico >= 1 & cae_especifico <= 7, 1, 0), # persona ocupada
+         desocupado = if_else(cae_especifico >= 8 & cae_especifico <= 9, 1, 0), # persona desocupada
+         metro = if_else(region == 13, 1, 0)) 
+
+
+```
+
+```{r, include=F, echo=F}
+keys <- ene %>% 
+  group_by(conglomerado) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  mutate(conglomerado2 = row_number()) %>% 
+  select(conglomerado2, conglomerado)
+
+ene <- ene %>% 
+  left_join(keys, by = "conglomerado") %>% 
+  select(-conglomerado) %>% 
+  rename(conglomerado = conglomerado2)
+
+```
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Brevísima revisión de survey
+
+En primer lugar, declaramos el diseño complejo con la función `svydesign`
+```{r}
+library(survey)
+dc <- svydesign(ids = ~conglomerado, strata = ~estrato,
+                weights = ~fact_cal,  data = ene )
+```
+
+Debemos declarar:
+- conglomerados de varianza
+- estratos de varianza
+- factor de expansión
+
+--
+
+Es importante indicarle a `survey` qué hacer cuando existen estratos que solo tienen una UPM 
+
+```{r}
+options(survey.lonely.psu = "certainty")
+```
+
+
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Brevísima revisión de survey
+
+### Ahora podemos usar los paquetes `survey` y  `calidad` 😃😃😃😃😃
+
+--
+
+**Calculemos la tasa de desempleo**
+
+```{r}
+svymean(x = ~desocupado, subset(dc, fdt == 1))
+
+```
+--
+
+**También podríamos calcularla así**
+
+```{r}
+svyby(formula = ~desocupado, design = dc, by = ~fdt, FUN = svymean)
+```
+--
+
+**O así...**
+
+```{r, eval=F}
+svyratio(numerator = ~desocupado, denominator = ~fdt, subset(dc, fdt == 1))
+```
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Brevísima revisión de survey
+
+Si queremos utilizar métodos de remuestreo, podemos usar `as.svrepdesign`
+
+Con `as.svrepdesign` podemos convertir un diseño "normal" en uno con remuestreo  
+
+--
+
+```{r}
+dc_rep <- as.svrepdesign(design = dc, type = "subbootstrap", replicates = 10)
+```
+
+--
+
+Y calcular, por ejemplo, el error estándar mediante remuestreo
+
+```{r}
+svymean(x = ~desocupado, subset(dc_rep, fdt == 1))
+
+```
+
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Brevísima revisión de survey
+
+`survey` permite hacer una infinidad de cálculos 
+
+- `svymean`
+- `svytotal`
+- `svyratio`
+- `svyby`
+- `svyquantile`
+
+--
+
+Mediante la función `as.svrepdesign` podemos, además, utilizar métodos de remuestreo
+
+- intervalos de confianza de percentiles
+- cv de percentiles
+
+--
+
+.center[
+### El paque survey en una gran herramienta que nos hace la vida más fácil 
+]
+
+.center[
+<img src="https://media.giphy.com/media/l3V0dy1zzyjbYTQQM/giphy.gif" width="250" />
+]
+
+
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Instalación paquete calidad
+
+Lo primero, es descargar el paquete desde `github`
+
+Se requiere el paquete `devtools`
+
+```{r, eval=F}
+library(devtools)
+install_github("Klauslehmann/calidad")
+```
+
+--
+
+### En la consola, aparecerá el siguiente mensaje
+
+
+.center[
+<img src="imagenes/consola.png" width="350" />
+]
+
+### Debes escribir 3 en la consola y luego enter
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Panorama general
+
+Lo siguiente, es cargar el paquete en la sesión
+
+```{r}
+library(calidad)
+```
+
+El paquete `calidad` tiene 2 grandes familias de funciones:
+
+- *create_*: permiten **crear** los insumos para el estándar
+- *evaluate_*: permiten hacer la **evaluación** del estándar
+
+--
+
+Podemos hacer los siguientes cálculos
+
+- `create_mean`: calcular la media (ingreso)
+- `create_prop`: proporción o razón (ocupación) 
+- `create_tot`: conteo de unidades (ocupación)
+- `create_tot_con`: suma de variables continuas (ingreso)
+- `create_median`: mediana (ingreso)
+
+--
+
+### Estas funciones devuelven la estimación y los insumos para el estándar
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Panorama general
+
+Queremos calcular la edad media para mujeres y hombres
+
+--
+
+```{r}
+create_mean(var = edad, dominios = sexo, disenio = dc)
+```
+
+- `var`: variable a estimar
+- `dominios`: desagregaciones
+- `disenio`: diseño muestral creado con `svydesign`
+--
+
+La función genera:
+
+- estimación 
+- error estándar (se)
+- grados de libertad (gl)
+- tamaño muestral (n)
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Panorama general
+
+A diferencia de `survey`, en el paquete `calidad` no es necesario utilizar ~  
+
+```{r, eval=F}
+# Argumentos con paquete survey
+svyby(formula = ~edad, by = ~sexo, design =  dc, FUN = svymean) 
+```
+
+
+--
+
+Tampoco se requiere que los argumentos estén escritos como *strings*
+
+--
+
+Sin embargo, existe la libertad para usar *strings*
+
+```{r}
+# Argumentos con paquete calidad
+create_mean(var = "edad", dominios = sexo,  disenio = dc)
+
+```
+
+--
+
+Ya veremos por qué podría ser útil que los argumentos sean strings
+
+.center[
+<img src="https://media.giphy.com/media/xUPGcz2H1TXdCz4suY/giphy.gif" width="150" />
+]
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Creando los insumos: create_prop
+
+Volvamos al caso de la tasa de desempleo
+
+--
+
+Para ello, contamos con la función `create_prop`
+
+--
+
+Podríamos hacer algo similar a lo anterior
+
+
+```{r, eval=F}
+create_prop(var = desocupado, dominios = sexo, disenio = dc)
+```
+
+--
+
+El problema es que el desempleo debe calcularse sobre una subpoblación específica (fuerza de trabajo)
+
+--
+
+Para ello, utilizamos el argumento `subpop`
+
+```{r, eval=F}
+create_prop(var = desocupado, dominios = sexo, subpop = fdt, disenio = dc)
+```
+
+--
+
+Es muy importante considerar que la variable **subpop debe ser dummy** 
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Creando los insumos: create_prop
+
+¿Qué pasa si queremos desagregar por más variables?
+
+--
+
+Se debe agregar otra variable utilizando un signo +
+
+```{r}
+create_prop(var = desocupado, dominios = sexo+metro, subpop = fdt, disenio = dc)
+
+```
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Creando los insumos: create_prop
+
+Queremos calcular el número de ocupad**os** respecto al número de ocupad**as**
+
+$$  \frac{SumaOcupadosHombre}{SumaOcupadosMujer}$$
+--
+
+Lo primero que debemos hacer es crear variables auxiliares 
+
+```{r}
+ene <- ene %>% 
+  mutate(ocupado_hombre = if_else(sexo == 1, ocupado, 0),
+         ocupado_mujer  = if_else(sexo == 2, ocupado, 0))
+
+```
+
+--
+
+Volvemos a declarar el diseño para incluir las variables recién creadas 
+
+```{r}
+dc <- svydesign(ids = ~conglomerado, strata = ~estrato, weights = ~fact_cal,  data = ene )
+```
+
+---
+
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Creando los insumos: create_prop
+
+La función `create_prop` permite incluir el argumento `denominador`
+
+```{r}
+create_prop(var = ocupado_hombre, denominador = ocupado_mujer, 
+            subpop = fdt, disenio = dc)
+
+```
+--
+
+Podemos agregar el parámetro `dominios`, si queremos desagregar 
+
+
+```{r}
+create_prop(var = ocupado_hombre, denominador = ocupado_mujer, 
+            dominios = metro , subpop = fdt, disenio = dc)
+
+```
+
+---
+
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Ejercicio ~~no tan~~ express (10 minutos)
+
+Calculemos el número total de casados sobre el total de convivientes. Para ello, deben utilizar la variable `est_conyugal` y seguir los siguientes pasos:
+
+- Crear variables dummy para casados (est_conyugal == 1) y para conviviente (est_conyugal == 2)
+- Declarar el diseño complejo con las nuevas columnas creadas
+- Utilizar la función `create_ratio` 
+
+--
+
+
+```{r}
+ene <- ene %>% 
+  mutate(casado = if_else(est_conyugal == 1, 1, 0),
+         conviviente  = if_else(est_conyugal == 2, 1, 0))
+
+dc <- svydesign(ids = ~conglomerado, strata = ~estrato, weights = ~fact_cal,  data = ene )
+create_prop(var = casado, denominador = conviviente,  disenio = dc )
+
+```
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Creando los insumos: median-mean
+
+Para calcular la media por sexo, usamos la función `create_mean`
+
+```{r}
+create_mean(var = edad, dominios = sexo, disenio = dc)
+```
+--
+
+Para calcular la mediana, usamos `create_median`
+
+En este caso, el valor por defecto para el número de réplicas es 10, pero podemos elegir el valor que queramos
+
+```{r}
+create_median(var = edad, dominios = sexo, disenio = dc, replicas = 50)
+```
+
+--
+
+.red[¡¡El tiempo de ejecución aumenta significativamente con el número de réplicas!!]
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Creando los insumos: create_tot
+
+Si queremos un conteo de casos, podemos usar `create_tot`
+
+--
+
+Por ejemplo, número de ocupados por región
+
+--
+
+```{r}
+create_tot(var = desocupado, dominios = sexo, subpop = fdt, disenio = dc)
+
+```
+
+--
+
+.red[Se requiere que la variable a estimar sea dummy]
+
+```{r, error=T, eval=T}
+create_tot(var = est_conyugal, dominios = sexo, subpop = fdt, disenio = dc)
+
+```
+
+
+
+---
+
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Argumentos adicionales
+
+Hasta el momento hemos revisado 
+
+- `create_prop`
+- `create_mean`
+- `create_median`
+- `create_tot`
+
+--
+
+Todas las funciones del paquete operan de manera similar
+
+
+--
+
+Contamos con dos argumentos opcionales 
+
+- `ci`: para obtener intervalos de confianza 
+- `ajuste_ene`: para calcular el intervalo de confianza con $t = 2$
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Argumentos adicionales
+
+Queremos calcular el intervalo de confianza par ala media de edad
+
+```{r}
+create_mean(var = edad, dominios = sexo, disenio = dc, ci = T)
+```
+
+--
+
+Debido al cambio de marco, la ENE está usando *t = 2* para el cálculo del intervalo de confianza 
+
+```{r}
+create_mean(var = edad, dominios = sexo, disenio = dc, ci = T, ajuste_ene = T)
+
+```
+--
+
+.red[Este ajuste opera desde enero de 2020]
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+<br>
+<br>
+<br>
+<br>
+<br>
+
+.center[
+  .big[Evaluación del estándar] 
+]
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Evaluación del estándar
+
+Existe una función de evaluación para cada tipo de estimación
+
+- `evaluate_mean`
+- `evaluate_prop`
+- `evaluate_tot`
+- `evaluate_tot_con`
+- `evaluate_median`
+
+--
+
+Estas funciones reciben como argumento la tabla creada por las funciones `create_*`
+
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Evaluación del estándar
+
+Evaluemos de la media de edad por sexo, cumple con el estándar
+
+--
+
+```{r}
+est <- create_mean(var = edad, dominios = sexo, disenio = dc)
+evaluate_mean(est)
+
+```
+
+--
+
+Tenemos 4 columnas nuevas
+
+- `eval_n`: indica si el tamaño muestral es sufciente
+- `eval_gl`: indica si los gl son suficientes
+- `eval_cv`: indica el tramo en el que está el cv
+- `calidad`: evaluación final de la estimación
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Evaluación del estándar
+
+Veamos el caso de la tasa de desempleo 
+
+```{r}
+est <-  create_prop(var = desocupado, dominios = sexo, disenio = dc)
+evaluate_prop(est)
+```
+--
+
+Además de las columnas ya vistas, tenemos 
+
+- `prop_est`
+- `tipo_eval`
+- `cuadratica`
+- `eval_se`
+- `eval_cv`
+
+---
+
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Evaluación del estándar
+
+Veamos qué pasa con las proporciones que son mayores a 1  
+
+```{r}
+est <- create_prop(var = casado, 
+                   denominador = conviviente,
+                   dominios = metro, 
+                   disenio = dc )
+evaluate_prop(est)
+
+```
+
+--
+
+**En este caso, usamos el CV para hacer la evaluación y no el SE** 
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Evaluación del estándar
+
+El estándar señala que un tabulado puede ser publicado si el 50% de sus celdas es fiable
+
+--
+
+Para saber si el tabulado debe ser publicado, usamos el argumento `publicar`
+
+```{r}
+est <-  create_tot(var = desocupado, dominios = region+sexo, disenio = dc)
+evaluate_tot(est, publicar = T) %>% 
+  select(region, sexo, total, calidad, publicacion, aprueba) %>% 
+  slice(1:6)
+```
+
+--
+
+Tenemos 2 nuevas columnas
+
+- `publicacion`: evaluación general del tabulado
+- `aprueba`: porcentaje de celdas con categoría fiable
+
+---
+
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Visualización estándar
+
+La función `tabla_html` aún está en desarrollo, pero ya está disponible para ser usada
+
+Recibe como argumento el output de `evaluate` 
+
+
+```{r}
+
+tabla_html(evaluate_tot(est) %>% slice(1:5)) 
+
+
+```
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Utilización de loops
+
+Queremos calcular la media para varias variables
+
+--
+
+En este caso, queremos la media de `edad` y `curso`, según sexo
+
+--
+
+Podemos generar un loop, agregando el parámetro `standard_eval = T`
+
+
+```{r}
+
+insumos <- data.frame()
+for (var in c("edad", "curso")) {
+  insumo <- create_mean(var = var, dominios = "sexo", disenio = dc,
+                        standard_eval = T )  
+  insumos <- bind_rows(insumos, insumo)
+}
+
+
+
+
+```
+--
+
+Podemos hacer lo mismo, utilizando el paquete `purrr` (mucho más recomendado que un for)
+
+
+```{r}
+insumos <- map_df(c("edad", "curso"), ~create_mean(var = .x, dominios = "sexo",
+                                                   disenio = dc, standard_eval = T ))
+
+```
+
+
+---
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Un poco de práctica
+
+- Calcula el total de desocupados según tramo etario  
+- Evalúa si el tabulado cumple con el estándar
+- Genera una visualización de la tabla evaluada
+
+--
+
+```{r, eval=F}
+tramo_ocup <- create_tot(desocupado, dominios = tramo_edad, subpop = fdt, disenio = dc)
+eval_tramo <- evaluate_tot(tramo_ocup, publicar = T)
+tabla_html(eval_tramo)
+
+```
+
+--
+- Calcula el total de desocupados según tramo etario y sexo  
+- Evalúa si el tabulado cumple con el estándar
+- Genera una visualización de la tabla evaluada
+
+```{r, eval=F}
+tramo_sexo_ocup <- create_tot(desocupado, dominios = tramo_edad+sexo, subpop = fdt, disenio = dc)
+eval_tramo_sexo <- evaluate_tot(tramo_sexo_ocup, publicar = T)
+tabla_html(eval_tramo_sexo)
+
+```
+
+---
+
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Un poco de práctica
+
+- Calcula el total de desocupados según tramo etario y region  
+- Evalúa si el tabulado cumple con el estándar
+- Genera una visualización de la tabla evaluada
+
+```{r, eval=F}
+tramo_region_ocup <- create_tot(desocupado, dominios = tramo_edad+region, subpop = fdt, disenio = dc)
+eval_region_tramo <- evaluate_tot(tramo_region_ocup, publicar = T)
+tabla_html(eval_region_tramo)
+
+```
+
+
+
+---
+
+class: center, middle
+
+.linea-superior[]
+.linea-inferior[]
+
+<img src="imagenes/logo_portada2.png" width="200" />
+
+## Capacitación en uso paquete calidad
+
+## Proyecto Estratégico Servicios Compartidos para la Producción Estadística
+
+### Abril 2021
