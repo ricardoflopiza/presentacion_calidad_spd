@@ -82,7 +82,7 @@ Desde 2020, el INE cuenta con un [estándar](https://www.ine.cl/docs/default-sou
 
 --
 
-Nos permite determinar si una estimación es no **fiable, poco fiable o no fiable** 
+Nos permite determinar si una estimación es **fiable, poco fiable o no fiable** 
 
 --
 
@@ -620,7 +620,7 @@ Calculemos el número total de casados sobre el total de convivientes. Para ello
 
 - Crear variables dummy para casados (est_conyugal == 1) y para conviviente (est_conyugal == 2)
 - Declarar el diseño complejo con las nuevas columnas creadas
-- Utilizar la función `create_ratio` 
+- Utilizar la función `create_prop` 
 
 --
 
@@ -643,7 +643,7 @@ background-position: 100% 0%
 
 # Creando los insumos: median-mean
 
-Para calcular la media por sexo, usamos la función `create_mean`
+Para calcular la media de edad por sexo, usamos la función `create_mean`
 
 ```{r}
 create_mean(var = edad, dominios = sexo, disenio = dc)
