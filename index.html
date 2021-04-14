@@ -36,23 +36,29 @@ background-image: url("imagenes/fondo2.PNG")
 background-size: contain;
 background-position: 100% 0%
 
-# Contenidos del taller
+# Estructura del taller
 
-- Elementos generales del estándar INE
-
---
-
-- Conceptos generales del paquete `survey`
+- Bienvenida de Leonardo González, Subdirector Técnico
 
 --
 
-- Uso básico del paquete `calidad`
+- Breve repaso del estándar de calidad para las estimaciones en encuestas de hogares del INE
+
+--
+
+- Mirada general del paquete `survey`
+
+--
+
+- Presentación y ejercicios prácticos con el paquete `calidad`, desarrollado por el PE SSCC. 
+
+
 
 --
 
 **Objetivo del taller**
 
-- Habilitar a los asistentes en el uso del paquete calidad
+- Aplicar el estándar de calidad, utilizando el paquete desarrollado por el PE Servicios Compartidos, de forma tal que todas las Direcciones Regionales utilicen y apliquen un mismo método para la aplicación del Estándar de Calidad.
 
 --
 
@@ -200,7 +206,7 @@ background-position: 100% 0%
 
 # Brevísima revisión de survey
 
-Usaremos los datos del trimestre NDE-2020 
+Usaremos los datos del trimestre NDE-2020 de la ENE
 
 
 
@@ -331,7 +337,7 @@ svymean(x = ~desocupado, subset(dc_rep, fdt == 1))
 
 ```
 ##               mean     SE
-## desocupado 0.10227 0.0021
+## desocupado 0.10227 0.0022
 ```
 
 
@@ -788,6 +794,14 @@ Contamos con dos argumentos opcionales
 - `ci`: para obtener intervalos de confianza 
 - `ajuste_ene`: para calcular el intervalo de confianza con `\(t = 2\)`
 
+--
+
+La ENE está en un periodo de cambio de marco muestral (marcos duales)
+
+--
+
+Durante la transición se está utilizando un valor crítico fijo, por ende, no se está considerando la cantidad de grados de libertad 
+
 
 ---
 background-image: url("imagenes/fondo2.PNG")
@@ -796,7 +810,7 @@ background-position: 100% 0%
 
 # Argumentos adicionales
 
-Queremos calcular el intervalo de confianza par ala media de edad
+Queremos calcular el intervalo de confianza para la media de edad
 
 
 ```r
