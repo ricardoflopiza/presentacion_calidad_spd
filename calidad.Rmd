@@ -107,7 +107,7 @@ Existe un flujo, que nos permite etiquetar **automáticamente** cada estimación
 --
 
 .center[
-<img src="imagenes/flujo.png" width="600" />
+<img src="imagenes/flujo.png" width="650" />
 ]
 
 ---
