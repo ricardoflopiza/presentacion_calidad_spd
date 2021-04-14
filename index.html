@@ -182,7 +182,7 @@ El paquete `calidad` combina el estándar del INE con el paquete `survey`, desar
 
 
 .center[
-&lt;img src="imagenes/lumley_ine.png" width="350" /&gt;
+&lt;img src="imagenes/ecuacion.png" width="450" /&gt;
 ]
 
 --
@@ -331,7 +331,7 @@ svymean(x = ~desocupado, subset(dc_rep, fdt == 1))
 
 ```
 ##               mean     SE
-## desocupado 0.10227 0.0034
+## desocupado 0.10227 0.0029
 ```
 
 
@@ -361,7 +361,7 @@ Mediante la función `as.svrepdesign` podemos, además, utilizar métodos de rem
 --
 
 .center[
-### El paque survey en una gran herramienta que nos hace la vida más fácil 
+### El paquete survey es una gran herramienta que nos hace la vida más fácil 
 ]
 
 .center[
@@ -457,10 +457,10 @@ create_mean(var = edad, dominios = sexo, disenio = dc)
 - `var`: variable a estimar
 - `dominios`: desagregaciones
 - `disenio`: diseño muestral creado con `svydesign`
+
 --
 
 La función genera:
-
 - estimación 
 - error estándar (se)
 - grados de libertad (gl)
@@ -1146,6 +1146,44 @@ Podemos hacer lo mismo, utilizando el paquete `purrr` (mucho más recomendado qu
 insumos &lt;- map_df(c("edad", "curso"), ~create_mean(var = .x, dominios = "sexo",
                                                    disenio = dc, standard_eval = T ))
 ```
+
+
+---
+
+background-image: url("imagenes/fondo2.PNG")
+background-size: contain;
+background-position: 100% 0%
+
+# Desarrollo open source
+
+El paquete `calidad` es un desarrollo completamente *open source* 
+
+--
+
+Estos proyectos se nutren del aporte de la comunidad
+
+--
+
+En este [repositorio de github](https://github.com/Klauslehmann/calidad) pueden proponer nuevos desarrollos
+
+--
+
+Ricardo Pizarro y yo seremos los mantenedores 
+
+--
+
+Pueden generar *issues* o nuevas ramas de desarrollo 
+
+--
+
+Si en tu región tienes un desarrollo o mejora, estaremos felices de revisarlo e incorporarlo al paquete  
+
+.center[
+### 😄😄😄😄😄
+]
+
+
+
 
 
 ---
