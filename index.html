@@ -4,7 +4,7 @@
     <title>Capacitación paquete calidad</title>
     <meta charset="utf-8" />
     <meta name="author" content="" />
-    <meta name="date" content="2021-04-14" />
+    <meta name="date" content="2021-04-20" />
     <script src="calidad_files/kePrint-0.0.1/kePrint.js"></script>
     <link href="calidad_files/lightable-0.0.1/lightable.css" rel="stylesheet" />
     <link rel="stylesheet" href="xaringan-themer.css" type="text/css" />
@@ -38,9 +38,6 @@ background-position: 100% 0%
 
 # Estructura del taller
 
-- Bienvenida de Leonardo González, Subdirector Técnico
-
---
 
 - Breve repaso del estándar de calidad para las estimaciones en encuestas de hogares del INE
 
@@ -100,7 +97,7 @@ Existe un flujo, que nos permite etiquetar **automáticamente** cada estimación
 --
 
 .center[
-&lt;img src="imagenes/flujo.png" width="600" /&gt;
+&lt;img src="imagenes/flujo.png" width="650" /&gt;
 ]
 
 ---
@@ -243,8 +240,8 @@ En primer lugar, declaramos el diseño complejo con la función `svydesign`
 
 ```r
 library(survey)
-dc &lt;- svydesign(ids = ~conglomerado, strata = ~estrato,
-                weights = ~fact_cal,  data = ene )
+dc &lt;- svydesign(weights = ~fact_cal, ids = ~conglomerado, strata = ~estrato,
+                  data = ene )
 ```
 
 Debemos declarar:
@@ -337,7 +334,7 @@ svymean(x = ~desocupado, subset(dc_rep, fdt == 1))
 
 ```
 ##               mean     SE
-## desocupado 0.10227 0.0022
+## desocupado 0.10227 0.0028
 ```
 
 
@@ -455,9 +452,9 @@ create_mean(var = edad, dominios = sexo, disenio = dc)
 ```
 
 ```
-##   sexo     mean        se   gl     n  coef_var
-## 1    1 35.69097 0.1688094 4634 36551 0.4729752
-## 2    2 37.65420 0.1815331 4670 41089 0.4821060
+##   sexo     mean        se   gl     n    coef_var
+## 1    1 35.69097 0.1688094 4634 36551 0.004729752
+## 2    2 37.65420 0.1815331 4670 41089 0.004821060
 ```
 
 - `var`: variable a estimar
@@ -504,9 +501,9 @@ create_mean(var = "edad", dominios = sexo,  disenio = dc)
 ```
 
 ```
-##   sexo     mean        se   gl     n  coef_var
-## 1    1 35.69097 0.1688094 4634 36551 0.4729752
-## 2    2 37.65420 0.1815331 4670 41089 0.4821060
+##   sexo     mean        se   gl     n    coef_var
+## 1    1 35.69097 0.1688094 4634 36551 0.004729752
+## 2    2 37.65420 0.1815331 4670 41089 0.004821060
 ```
 
 --
@@ -606,7 +603,6 @@ ene &lt;- ene %&gt;%
          ocupado_mujer  = if_else(sexo == 2, ocupado, 0))
 ```
 
---
 
 Volvemos a declarar el diseño para incluir las variables recién creadas 
 
@@ -614,6 +610,7 @@ Volvemos a declarar el diseño para incluir las variables recién creadas
 ```r
 dc &lt;- svydesign(ids = ~conglomerado, strata = ~estrato, weights = ~fact_cal,  data = ene )
 ```
+
 
 ---
 
@@ -632,8 +629,8 @@ create_prop(var = ocupado_hombre, denominador = ocupado_mujer,
 ```
 
 ```
-##                objetivo         se       cv   gl     n
-## ocupado_hombre 1.457028 0.02161891 1.483768 4567 32209
+##                objetivo         se         cv   gl     n
+## ocupado_hombre 1.457028 0.02161891 0.01483768 4567 32209
 ```
 --
 
@@ -680,8 +677,8 @@ create_prop(var = casado, denominador = conviviente,  disenio = dc )
 ```
 
 ```
-##        objetivo         se       cv   gl     n
-## casado 1.923733 0.05178126 2.691707 4719 77640
+##        objetivo         se         cv   gl     n
+## casado 1.923733 0.05178126 0.02691707 4719 77640
 ```
 
 
@@ -700,9 +697,9 @@ create_mean(var = edad, dominios = sexo, disenio = dc)
 ```
 
 ```
-##   sexo     mean        se   gl     n  coef_var
-## 1    1 35.69097 0.1688094 4634 36551 0.4729752
-## 2    2 37.65420 0.1815331 4670 41089 0.4821060
+##   sexo     mean        se   gl     n    coef_var
+## 1    1 35.69097 0.1688094 4634 36551 0.004729752
+## 2    2 37.65420 0.1815331 4670 41089 0.004821060
 ```
 --
 
@@ -747,9 +744,9 @@ create_tot(var = desocupado, dominios = sexo, subpop = fdt, disenio = dc)
 ```
 
 ```
-##   sexo    total       se    n  gl coef_var
-## 1    1 517060.1 21042.97 1591 927 4.069734
-## 2    2 408153.7 17294.14 1358 784 4.237165
+##   sexo    total       se    n  gl   coef_var
+## 1    1 517060.1 21042.97 1591 927 0.04069734
+## 2    2 408153.7 17294.14 1358 784 0.04237165
 ```
 
 --
@@ -818,9 +815,9 @@ create_mean(var = edad, dominios = sexo, disenio = dc, ci = T)
 ```
 
 ```
-##   sexo     mean        se   gl     n  coef_var        t       li       ls
-## 1    1 35.69097 0.1688094 4634 36551 0.4729752 1.960476 35.36002 36.02191
-## 2    2 37.65420 0.1815331 4670 41089 0.4821060 1.960472 37.29831 38.01009
+##   sexo     mean        se   gl     n    coef_var        t       li       ls
+## 1    1 35.69097 0.1688094 4634 36551 0.004729752 1.960476 35.36002 36.02191
+## 2    2 37.65420 0.1815331 4670 41089 0.004821060 1.960472 37.29831 38.01009
 ```
 
 --
@@ -833,9 +830,9 @@ create_mean(var = edad, dominios = sexo, disenio = dc, ci = T, ajuste_ene = T)
 ```
 
 ```
-##   sexo     mean        se   gl     n  coef_var t       li       ls
-## 1    1 35.69097 0.1688094 4634 36551 0.4729752 2 35.35335 36.02859
-## 2    2 37.65420 0.1815331 4670 41089 0.4821060 2 37.29113 38.01726
+##   sexo     mean        se   gl     n    coef_var t       li       ls
+## 1    1 35.69097 0.1688094 4634 36551 0.004729752 2 35.35335 36.02859
+## 2    2 37.65420 0.1815331 4670 41089 0.004821060 2 37.29113 38.01726
 ```
 --
 
@@ -897,9 +894,9 @@ evaluate_mean(est)
 ```
 
 ```
-##   sexo     mean        se   gl     n  coef_var       eval_n       eval_gl
-## 1    1 35.69097 0.1688094 4634 36551 0.4729752 n suficiente gl suficiente
-## 2    2 37.65420 0.1815331 4670 41089 0.4821060 n suficiente gl suficiente
+##   sexo     mean        se   gl     n    coef_var       eval_n       eval_gl
+## 1    1 35.69097 0.1688094 4634 36551 0.004729752 n suficiente gl suficiente
+## 2    2 37.65420 0.1815331 4670 41089 0.004821060 n suficiente gl suficiente
 ##    eval_cv calidad
 ## 1 cv &lt;= 15  fiable
 ## 2 cv &lt;= 15  fiable
@@ -1003,13 +1000,13 @@ evaluate_tot(est, publicar = T) %&gt;%
 ```
 
 ```
-##   region sexo    total     calidad          publicacion        aprueba
-## 1      1    1  9248.56   no fiable no publicar tabulado pasa el 43.75%
-## 2      2    1 21320.02      fiable no publicar tabulado pasa el 43.75%
-## 3      3    1 10659.94      fiable no publicar tabulado pasa el 43.75%
-## 4      4    1 22749.72 poco fiable no publicar tabulado pasa el 43.75%
-## 5      5    1 52432.50      fiable no publicar tabulado pasa el 43.75%
-## 6      6    1 28877.61      fiable no publicar tabulado pasa el 43.75%
+##   region sexo    total   calidad       publicacion        aprueba
+## 1      1    1  9248.56 no fiable publicar tabulado pasa el 59.38%
+## 2      2    1 21320.02    fiable publicar tabulado pasa el 59.38%
+## 3      3    1 10659.94    fiable publicar tabulado pasa el 59.38%
+## 4      4    1 22749.72    fiable publicar tabulado pasa el 59.38%
+## 5      5    1 52432.50    fiable publicar tabulado pasa el 59.38%
+## 6      6    1 28877.61    fiable publicar tabulado pasa el 59.38%
 ```
 
 --
@@ -1061,10 +1058,10 @@ tabla_html(evaluate_tot(est) %&gt;% slice(1:5))
    &lt;td style="text-align:center;"&gt; 1.794,04 &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; &lt;span style="     color: red !important;"&gt;46&lt;/span&gt; &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; &lt;span style="     color: black !important;"&gt;31&lt;/span&gt; &lt;/td&gt;
-   &lt;td style="text-align:center;"&gt; 19,40 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0,19 &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; n insuficiente &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; gl suficiente &lt;/td&gt;
-   &lt;td style="text-align:center;"&gt; cv entre 15 y 30 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; cv &amp;lt;= 15 &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; &lt;span style="     color: black !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: red !important;"&gt;no fiable&lt;/span&gt; &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
@@ -1074,7 +1071,7 @@ tabla_html(evaluate_tot(est) %&gt;% slice(1:5))
    &lt;td style="text-align:center;"&gt; 2.976,24 &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; &lt;span style="     color: black !important;"&gt;79&lt;/span&gt; &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; &lt;span style="     color: black !important;"&gt;47&lt;/span&gt; &lt;/td&gt;
-   &lt;td style="text-align:center;"&gt; 13,96 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0,14 &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; n suficiente &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; gl suficiente &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; cv &amp;lt;= 15 &lt;/td&gt;
@@ -1087,7 +1084,7 @@ tabla_html(evaluate_tot(est) %&gt;% slice(1:5))
    &lt;td style="text-align:center;"&gt; 1.493,71 &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; &lt;span style="     color: black !important;"&gt;80&lt;/span&gt; &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; &lt;span style="     color: black !important;"&gt;47&lt;/span&gt; &lt;/td&gt;
-   &lt;td style="text-align:center;"&gt; 14,01 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0,14 &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; n suficiente &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; gl suficiente &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; cv &amp;lt;= 15 &lt;/td&gt;
@@ -1100,11 +1097,11 @@ tabla_html(evaluate_tot(est) %&gt;% slice(1:5))
    &lt;td style="text-align:center;"&gt; 3.976,83 &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; &lt;span style="     color: black !important;"&gt;80&lt;/span&gt; &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; &lt;span style="     color: black !important;"&gt;42&lt;/span&gt; &lt;/td&gt;
-   &lt;td style="text-align:center;"&gt; 17,48 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0,17 &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; n suficiente &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; gl suficiente &lt;/td&gt;
-   &lt;td style="text-align:center;"&gt; cv entre 15 y 30 &lt;/td&gt;
-   &lt;td style="text-align:center;"&gt; &lt;span style="     color: black !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: yellow !important;"&gt;poco fiable&lt;/span&gt; &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; cv &amp;lt;= 15 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; &lt;span style="     color: black !important;border-radius: 4px; padding-right: 4px; padding-left: 4px; background-color: green !important;"&gt;fiable&lt;/span&gt; &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
    &lt;td style="text-align:center;"&gt; 5 &lt;/td&gt;
@@ -1113,7 +1110,7 @@ tabla_html(evaluate_tot(est) %&gt;% slice(1:5))
    &lt;td style="text-align:center;"&gt; 4.783,64 &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; &lt;span style="     color: black !important;"&gt;239&lt;/span&gt; &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; &lt;span style="     color: black !important;"&gt;138&lt;/span&gt; &lt;/td&gt;
-   &lt;td style="text-align:center;"&gt; 9,12 &lt;/td&gt;
+   &lt;td style="text-align:center;"&gt; 0,09 &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; n suficiente &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; gl suficiente &lt;/td&gt;
    &lt;td style="text-align:center;"&gt; cv &amp;lt;= 15 &lt;/td&gt;
