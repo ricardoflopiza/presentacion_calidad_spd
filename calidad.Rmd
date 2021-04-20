@@ -45,9 +45,6 @@ background-position: 100% 0%
 
 # Estructura del taller
 
-- Bienvenida de Leonardo González, Subdirector Técnico
-
---
 
 - Breve repaso del estándar de calidad para las estimaciones en encuestas de hogares del INE
 
@@ -238,6 +235,7 @@ ene <- ene %>%
 ```
 
 ```{r, include=F, echo=F}
+
 keys <- ene %>% 
   group_by(conglomerado) %>% 
   slice(1) %>% 
@@ -263,8 +261,8 @@ background-position: 100% 0%
 En primer lugar, declaramos el diseño complejo con la función `svydesign`
 ```{r}
 library(survey)
-dc <- svydesign(ids = ~conglomerado, strata = ~estrato,
-                weights = ~fact_cal,  data = ene )
+dc <- svydesign(weights = ~fact_cal, ids = ~conglomerado, strata = ~estrato,
+                  data = ene )
 ```
 
 Debemos declarar:
@@ -578,15 +576,17 @@ ene <- ene %>%
   mutate(ocupado_hombre = if_else(sexo == 1, ocupado, 0),
          ocupado_mujer  = if_else(sexo == 2, ocupado, 0))
 
+
+
 ```
 
---
 
 Volvemos a declarar el diseño para incluir las variables recién creadas 
 
 ```{r}
 dc <- svydesign(ids = ~conglomerado, strata = ~estrato, weights = ~fact_cal,  data = ene )
 ```
+
 
 ---
 
