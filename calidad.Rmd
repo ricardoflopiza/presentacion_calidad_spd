@@ -21,11 +21,13 @@ class: center, middle
 
 <img src="imagenes/logo_portada2.png" width="200" />
 
-## Capacitación en uso paquete calidad
+## Capacitación en uso paquete calidad para 
+Subsecretaría prevención del delito
 
-## Proyecto Estratégico Servicios Compartidos para la Producción Estadística
+## Subdepartamento condiciones de vida 
+**INE**
 
-### Abril 2021
+### Diciembre 2021
 
 ```{r setup, include=FALSE}
 options(htmltools.dir.version = TRUE)
@@ -50,19 +52,17 @@ background-position: 100% 0%
 
 --
 
-- Mirada general del paquete `survey`
+- Recordar de manera general el paquete `survey`
 
 --
 
 - Presentación y ejercicios prácticos con el paquete `calidad`, desarrollado por el PE SSCC. 
 
-
-
 --
 
 **Objetivo del taller**
 
-- Aplicar el estándar de calidad, utilizando el paquete desarrollado por el PE Servicios Compartidos, de forma tal que todas las Direcciones Regionales utilicen y apliquen un mismo método para la aplicación del Estándar de Calidad.
+- Presentar principales funciones del paquete de `calidad` para la implementación del estandar de calidad porpuesto por el INE, con datos de ENUSC.
 
 --
 
@@ -210,46 +210,35 @@ background-position: 100% 0%
 
 # Brevísima revisión de survey
 
-Usaremos los datos del trimestre NDE-2020 de la ENE
+Usaremos los datos de ENUSC 2020 y 2019
 
 
 ```{r}
 library(readr)
 library(tidyverse)
-ene <- read_delim("data/ene-2020-12-nde.csv", delim = ";")
+
+# enusc <- haven::read_sav("base-de-datos---xvi-enusc-2019.sav")
+enusc <- feather::read_feather("data/enusc2019.feather")
 
 ```
-
 --
 
-Construyamos algunas variables necesarias para calcular indicadores relevantes del mercado laboral
+Construyamos variables necesarias para hacer algunos cálculos
 
 ```{r}
-ene <- ene %>% 
-  mutate(fdt = if_else(cae_especifico >= 1 & cae_especifico <= 9, 1, 0), # fuerza de trabajo
-         ocupado = if_else(cae_especifico >= 1 & cae_especifico <= 7, 1, 0), # persona ocupada
-         desocupado = if_else(cae_especifico >= 8 & cae_especifico <= 9, 1, 0), # persona desocupada
-         metro = if_else(region == 13, 1, 0)) 
+### Seleccionamos a los casos kish 
+enusc = enusc[enusc$Kish == 1,]
 
+### percepción de inseguridad por sexo
+enusc = enusc %>%  mutate(muj_insg_taxi = dplyr::if_else(enusc$P9_4_1 %in% c(1,2) & enusc$rph_sexo == 2,1 ,0),
+                          hom_insg_taxi = dplyr::if_else(enusc$P9_4_1 %in% c(1,2) & enusc$rph_sexo == 1,1 ,0))
 
-```
+enusc$muj_insg_micro = if_else(enusc$P9_3_1 %in% c(1,2) & enusc$rph_sexo == 2,1 ,0)
+enusc$hom_insg_micro = if_else(enusc$P9_3_1 %in% c(1,2) & enusc$rph_sexo == 1,1 ,0)
 
-```{r, include=F, echo=F}
-
-keys <- ene %>% 
-  group_by(conglomerado) %>% 
-  slice(1) %>% 
-  ungroup() %>% 
-  mutate(conglomerado2 = row_number()) %>% 
-  select(conglomerado2, conglomerado)
-
-ene <- ene %>% 
-  left_join(keys, by = "conglomerado") %>% 
-  select(-conglomerado) %>% 
-  rename(conglomerado = conglomerado2)
+enusc$robo_vehiculo = if_else(enusc$G1_1_1 == 1,1,0)
 
 ```
-
 
 ---
 background-image: url("imagenes/fondo2.PNG")
@@ -261,8 +250,16 @@ background-position: 100% 0%
 En primer lugar, declaramos el diseño complejo con la función `svydesign`
 ```{r}
 library(survey)
-dc <- svydesign(weights = ~fact_cal, ids = ~conglomerado, strata = ~estrato,
-                  data = ene )
+
+### declaramos diseño complejo con el factor de personas
+dcPers <- svydesign(ids = ~Conglomerado, strata = ~VarStrat,
+                     data = enusc, weights = ~Fact_Pers)
+
+### declaramos diseño complejo con el factor de hogares
+dcHog <- svydesign(ids = ~Conglomerado, strata = ~VarStrat,
+                     data = enusc, weights = ~Fact_Hog)
+
+
 ```
 
 Debemos declarar:
@@ -279,8 +276,6 @@ options(survey.lonely.psu = "certainty")
 ```
 
 
-
-
 ---
 background-image: url("imagenes/fondo2.PNG")
 background-size: contain;
@@ -288,59 +283,31 @@ background-position: 100% 0%
 
 # Brevísima revisión de survey
 
-### Ahora podemos usar los paquetes `survey` y  `calidad` 😃😃😃😃😃
+### Ahora podemos usar los paquetes `survey` y  `calidad` para diferentes tipos de cálculos 😃😃😃😃😃
 
 --
 
-**Calculemos la tasa de desempleo**
+**Calculemos la Victimización Personal de Delitos Consumados**
 
 ```{r}
-svymean(x = ~desocupado, subset(dc, fdt == 1))
-
+svymean(x = ~VP_DC,dcPers)
 ```
 --
 
-**También podríamos calcularla así**
+**Calculemos la Victimización Personal de Delitos Consumados por regiones**
 
 ```{r}
-svyby(formula = ~desocupado, design = dc, by = ~fdt, FUN = svymean)
+svyby(formula = ~VP_DC, design = dcPers, by = ~enc_region, FUN = svymean)
 ```
 --
 
-**O así...**
+**Calculemos la inseguridad de las mujeres en taxis por sobre los hombres**
 
 ```{r, eval=F}
-svyratio(numerator = ~desocupado, denominator = ~fdt, subset(dc, fdt == 1))
+svyratio(numerator = ~muj_insg_taxi, denominator = ~hom_insg_taxi, dcPers)
 ```
 ---
-background-image: url("imagenes/fondo2.PNG")
-background-size: contain;
-background-position: 100% 0%
 
-# Brevísima revisión de survey
-
-Si queremos utilizar métodos de remuestreo, podemos usar `as.svrepdesign`
-
-Con `as.svrepdesign` podemos convertir un diseño "normal" en uno con remuestreo  
-
---
-
-```{r}
-dc_rep <- as.svrepdesign(design = dc, type = "subbootstrap", replicates = 10)
-```
-
---
-
-Y calcular, por ejemplo, el error estándar mediante remuestreo
-
-```{r}
-svymean(x = ~desocupado, subset(dc_rep, fdt == 1))
-
-```
-
-
-
----
 background-image: url("imagenes/fondo2.PNG")
 background-size: contain;
 background-position: 100% 0%
@@ -388,7 +355,7 @@ Se requiere el paquete `devtools`
 
 ```{r, eval=F}
 library(devtools)
-install_github("Klauslehmann/calidad")
+install_github("inesscc/calidad")
 ```
 
 --
@@ -424,11 +391,11 @@ El paquete `calidad` tiene 2 grandes familias de funciones:
 
 Podemos hacer los siguientes cálculos
 
-- `create_mean`: calcular la media (ingreso)
-- `create_prop`: proporción o razón (ocupación) 
+- `create_mean`: calcular la media (edad)
+- `create_prop`: proporción o razón (VP_DC, ocupación) 
 - `create_tot`: conteo de unidades (ocupación)
 - `create_tot_con`: suma de variables continuas (ingreso)
-- `create_median`: mediana (ingreso)
+- `create_median`: mediana (edad, ingreso)
 
 --
 
@@ -445,8 +412,8 @@ Queremos calcular la edad media para mujeres y hombres
 
 --
 
-```{r}
-create_mean(var = edad, dominios = sexo, disenio = dc)
+```{r, eval=F}
+ create_mean(var = edad_numerica, dominios = rph_sexo, disenio = dcPers)
 ```
 
 - `var`: variable a estimar
@@ -460,7 +427,7 @@ La función genera:
 - error estándar (se)
 - grados de libertad (gl)
 - tamaño muestral (n)
-
+- coeficiente de variación (coef_var)
 
 ---
 background-image: url("imagenes/fondo2.PNG")
@@ -473,7 +440,7 @@ A diferencia de `survey`, en el paquete `calidad` no es necesario utilizar ~
 
 ```{r, eval=F}
 # Argumentos con paquete survey
-svyby(formula = ~edad, by = ~sexo, design =  dc, FUN = svymean) 
+ svyby(formula = ~rph_edad, by = ~rph_sexo, design =  dcPers, FUN = svymean) 
 ```
 
 
@@ -487,7 +454,7 @@ Sin embargo, existe la libertad para usar *strings*
 
 ```{r}
 # Argumentos con paquete calidad
-create_mean(var = "edad", dominios = sexo,  disenio = dc)
+ create_prop(var = "VP_DC", dominios = rph_sexo,  disenio = dcPers)
 
 ```
 
@@ -507,8 +474,7 @@ background-position: 100% 0%
 
 # Creando los insumos: create_prop
 
-Volvamos al caso de la tasa de desempleo
-
+Calculemos los robos de vehículos, 
 --
 
 Para ello, contamos con la función `create_prop`
@@ -518,20 +484,27 @@ Para ello, contamos con la función `create_prop`
 Podríamos hacer algo similar a lo anterior
 
 
-```{r, eval=F}
-create_prop(var = desocupado, dominios = sexo, disenio = dc)
+```{r, eval=T}
+create_prop(var = robo_vehiculo, disenio = dcHog)
+
 ```
 
 --
 
-El problema es que el desempleo debe calcularse sobre una subpoblación específica (fuerza de trabajo)
+El problema es que el robo de vehículos debe calcularse sobre una subpoblación específica (quienes poseen vehículos)
 
 --
 
 Para ello, utilizamos el argumento `subpop`
 
-```{r, eval=F}
-create_prop(var = desocupado, dominios = sexo, subpop = fdt, disenio = dc)
+```{r}
+
+enusc$poseen_vehiculo = if_else(enusc$F1_1_1 == 1,1,0)
+
+dcHog <- svydesign(ids = ~Conglomerado, strata = ~VarStrat,
+                     data = enusc, weights = ~Fact_Hog)
+# G1: Durante los últimos doce meses, ¿a usted o a algún miembro de su hogar le fue robado su automóvil, camioneta o motocicleta?
+create_prop(var = robo_vehiculo, subpop = poseen_vehiculo, disenio = dcHog)
 ```
 
 --
@@ -553,8 +526,7 @@ background-position: 100% 0%
 Se debe agregar otra variable utilizando un signo +
 
 ```{r}
-create_prop(var = desocupado, dominios = sexo+metro, subpop = fdt, disenio = dc)
-
+create_prop(var = VP_DC, dominios = rph_sexo+enc_region, disenio = dcPers)
 ```
 
 ---
@@ -564,29 +536,9 @@ background-position: 100% 0%
 
 # Creando los insumos: create_prop
 
-Queremos calcular el número de ocupad**os** respecto al número de ocupad**as**
+Queremos calcula la percepción de inseguridad de las mujeres cuando viajan taxis por sobre la percepción inseguridad de los hombres. 
 
-$$  \frac{SumaOcupadosHombre}{SumaOcupadosMujer}$$
---
-
-Lo primero que debemos hacer es crear variables auxiliares 
-
-```{r}
-ene <- ene %>% 
-  mutate(ocupado_hombre = if_else(sexo == 1, ocupado, 0),
-         ocupado_mujer  = if_else(sexo == 2, ocupado, 0))
-
-
-
-```
-
-
-Volvemos a declarar el diseño para incluir las variables recién creadas 
-
-```{r}
-dc <- svydesign(ids = ~conglomerado, strata = ~estrato, weights = ~fact_cal,  data = ene )
-```
-
+$$  \frac{InseguridadTaxisMujeres}{InseguridadTaxisHombres}$$
 
 ---
 
@@ -599,9 +551,7 @@ background-position: 100% 0%
 La función `create_prop` permite incluir el argumento `denominador`
 
 ```{r}
-create_prop(var = ocupado_hombre, denominador = ocupado_mujer, 
-            subpop = fdt, disenio = dc)
-
+create_prop(var = muj_insg_taxi, denominador = hom_insg_taxi, disenio = dcPers)
 ```
 --
 
@@ -609,38 +559,8 @@ Podemos agregar el parámetro `dominios`, si queremos desagregar
 
 
 ```{r}
-create_prop(var = ocupado_hombre, denominador = ocupado_mujer, 
-            dominios = metro , subpop = fdt, disenio = dc)
-
+ create_prop(var = muj_insg_taxi, denominador = hom_insg_taxi,dominios = enc_region, disenio = dcPers)
 ```
-
----
-
-background-image: url("imagenes/fondo2.PNG")
-background-size: contain;
-background-position: 100% 0%
-
-# Ejercicio ~~no tan~~ express (10 minutos)
-
-Calculemos el número total de casados sobre el total de convivientes. Para ello, deben utilizar la variable `est_conyugal` y seguir los siguientes pasos:
-
-- Crear variables dummy para casados (est_conyugal == 1) y para conviviente (est_conyugal == 2)
-- Declarar el diseño complejo con las nuevas columnas creadas
-- Utilizar la función `create_prop` 
-
---
-
-
-```{r}
-ene <- ene %>% 
-  mutate(casado = if_else(est_conyugal == 1, 1, 0),
-         conviviente  = if_else(est_conyugal == 2, 1, 0))
-
-dc <- svydesign(ids = ~conglomerado, strata = ~estrato, weights = ~fact_cal,  data = ene )
-create_prop(var = casado, denominador = conviviente,  disenio = dc )
-
-```
-
 
 ---
 background-image: url("imagenes/fondo2.PNG")
@@ -651,8 +571,8 @@ background-position: 100% 0%
 
 Para calcular la media de edad por sexo, usamos la función `create_mean`
 
-```{r}
-create_mean(var = edad, dominios = sexo, disenio = dc)
+```{r, eval=F}
+ create_mean(var = edad_numerica, dominios = rph_sexo, disenio = dcPers)
 ```
 --
 
@@ -660,8 +580,8 @@ Para calcular la mediana, usamos `create_median`
 
 En este caso, el valor por defecto para el número de réplicas es 10, pero podemos elegir el valor que queramos
 
-```{r}
-create_median(var = edad, dominios = sexo, disenio = dc, replicas = 50)
+```{r, eval = F}
+ create_median(var = edad_numerica, dominios = rph_sexo, disenio = dcPers, replicas = 50)
 ```
 
 --
@@ -680,25 +600,17 @@ Si queremos un conteo de casos, podemos usar `create_tot`
 
 --
 
-Por ejemplo, número de ocupados por región
+Por ejemplo, número de propietarios de vehículos por región
 
 --
 
 ```{r}
-create_tot(var = desocupado, dominios = sexo, subpop = fdt, disenio = dc)
-
+create_tot(poseen_vehiculo, dominios = enc_region,disenio = dcHog)
 ```
 
 --
 
 .red[Se requiere que la variable a estimar sea dummy]
-
-```{r, error=T, eval=T}
-create_tot(var = est_conyugal, dominios = sexo, subpop = fdt, disenio = dc)
-
-```
-
-
 
 ---
 
@@ -722,19 +634,9 @@ Todas las funciones del paquete operan de manera similar
 
 --
 
-Contamos con dos argumentos opcionales 
+Contamos argumentos opcionales 
 
 - `ci`: para obtener intervalos de confianza 
-- `ajuste_ene`: para calcular el intervalo de confianza con $t = 2$
-
---
-
-La ENE está en un periodo de cambio de marco muestral (marcos duales)
-
---
-
-Durante la transición se está utilizando un valor crítico fijo, por ende, no se está considerando la cantidad de grados de libertad 
-
 
 ---
 background-image: url("imagenes/fondo2.PNG")
@@ -745,22 +647,9 @@ background-position: 100% 0%
 
 Queremos calcular el intervalo de confianza para la media de edad
 
-```{r}
-create_mean(var = edad, dominios = sexo, disenio = dc, ci = T)
+```{r, eval=F}
+create_mean(var = edad_numerica, dominios = rph_sexo, disenio = dcPers, ci = T)
 ```
-
---
-
-Debido al cambio de marco, la ENE está usando *t = 2* para el cálculo del intervalo de confianza 
-
-```{r}
-create_mean(var = edad, dominios = sexo, disenio = dc, ci = T, ajuste_ene = T)
-
-```
---
-
-.red[Este ajuste opera desde enero de 2020]
-
 
 ---
 background-image: url("imagenes/fondo2.PNG")
@@ -806,13 +695,14 @@ background-position: 100% 0%
 
 # Evaluación del estándar
 
-Evaluemos de la media de edad por sexo, cumple con el estándar
+Evaluemos si la victimización acumulada, cumple con el estándar
 
 --
 
 ```{r}
-est <- create_mean(var = edad, dominios = sexo, disenio = dc)
-evaluate_mean(est)
+
+ est <- create_prop(var = VA_DC, dominios = rph_sexo, disenio = dcHog)
+ evaluate_mean(est)
 
 ```
 
@@ -820,7 +710,7 @@ evaluate_mean(est)
 
 Tenemos 4 columnas nuevas
 
-- `eval_n`: indica si el tamaño muestral es sufciente
+- `eval_n`: indica si el tamaño muestral es suficiente
 - `eval_gl`: indica si los gl son suficientes
 - `eval_cv`: indica el tramo en el que está el cv
 - `calidad`: evaluación final de la estimación
@@ -833,11 +723,11 @@ background-position: 100% 0%
 
 # Evaluación del estándar
 
-Veamos el caso de la tasa de desempleo 
+Veamos el caso de Victimización de Delitos Consumados
 
 ```{r}
-est <-  create_prop(var = desocupado, dominios = sexo, disenio = dc)
-evaluate_prop(est)
+ est <- create_prop(var = VP_DC, dominios = enc_region, disenio = dcPers)
+ evaluate_prop(est)
 ```
 --
 
@@ -857,14 +747,11 @@ background-position: 100% 0%
 
 # Evaluación del estándar
 
-Veamos qué pasa con las proporciones que son mayores a 1  
+Veamos qué pasa con las proporciones que son mayores a 1, como la percepción de inseguridad en taxis
 
 ```{r}
-est <- create_prop(var = casado, 
-                   denominador = conviviente,
-                   dominios = metro, 
-                   disenio = dc )
-evaluate_prop(est)
+ est <- create_prop(var = muj_insg_taxi, denominador = hom_insg_taxi,dominios = enc_region, disenio = dcPers)
+ evaluate_prop(est)
 
 ```
 
@@ -887,9 +774,9 @@ El estándar señala que un tabulado puede ser publicado si el 50% de sus celdas
 Para saber si el tabulado debe ser publicado, usamos el argumento `publicar`
 
 ```{r}
-est <-  create_tot(var = desocupado, dominios = region+sexo, disenio = dc)
-evaluate_tot(est, publicar = T) %>% 
-  select(region, sexo, total, calidad, publicacion, aprueba) %>% 
+est <-  create_prop(var = muj_insg_taxi, denominador = hom_insg_taxi,dominios = enc_region, disenio = dcPers)
+evaluate_tot(est, publicar = T) %>%
+  select(enc_region, objetivo, calidad, publicacion, aprueba) %>%
   slice(1:6)
 ```
 
@@ -915,7 +802,7 @@ Recibe como argumento el output de `evaluate`
 
 ```{r}
 
-tabla_html(evaluate_tot(est) %>% slice(1:5)) 
+ tabla_html(evaluate_tot(est) %>% slice(1:5)) 
 
 
 ```
@@ -928,11 +815,12 @@ background-position: 100% 0%
 
 # Utilización de loops
 
-Queremos calcular la media para varias variables
+Queremos calcular la proporción para varias variables o indicadores
 
 --
 
-En este caso, queremos la media de `edad` y `curso`, según sexo
+En este caso, queremos la proporción de la Victimización Agregada Delitos Consumados (`VA_DC`)
+y Victimización Agregada Intentos de Delito (`VA_ID`) por región.
 
 --
 
@@ -942,14 +830,11 @@ Podemos generar un loop, agregando el parámetro `standard_eval = T`
 ```{r}
 
 insumos <- data.frame()
-for (var in c("edad", "curso")) {
-  insumo <- create_mean(var = var, dominios = "sexo", disenio = dc,
-                        standard_eval = T )  
+for (var in c("VA_DC", "VA_ID")) {
+  insumo <- create_prop(var = var, dominios = "enc_region", disenio = dcHog,
+                        standard_eval = T )
   insumos <- bind_rows(insumos, insumo)
 }
-
-
-
 
 ```
 --
@@ -958,9 +843,8 @@ Podemos hacer lo mismo, utilizando el paquete `purrr` (mucho más recomendado qu
 
 
 ```{r}
-insumos <- map_df(c("edad", "curso"), ~create_mean(var = .x, dominios = "sexo",
-                                                   disenio = dc, standard_eval = T ))
-
+insumos <- map_df(c("VA_DC", "VA_ID"), ~create_mean(var = .x, dominios = "enc_region",
+                                                   disenio = dcHog, standard_eval = T ))
 ```
 
 
@@ -980,11 +864,11 @@ Estos proyectos se nutren del aporte de la comunidad
 
 --
 
-En este [repositorio de github](https://github.com/Klauslehmann/calidad) pueden proponer nuevos desarrollos
+En este [repositorio de github](https://github.com/inesscc/calidad) pueden proponer nuevos desarrollos
 
 --
 
-Ricardo Pizarro y yo seremos los mantenedores 
+Klaus Lehmann y Ricardo Pizarro seremos los mantenedores 
 
 --
 
@@ -992,7 +876,7 @@ Pueden generar *issues* o nuevas ramas de desarrollo
 
 --
 
-Si en tu región tienes un desarrollo o mejora, estaremos felices de revisarlo e incorporarlo al paquete  
+Si tienen una idea de desarrollo o mejora, estaremos felices de revisarlo e incorporarlo al paquete  
 
 .center[
 ### 😄😄😄😄😄
@@ -1009,28 +893,24 @@ background-position: 100% 0%
 
 # Un poco de práctica
 
-- Calcula el total de desocupados según tramo etario  
+- Calcula la razón de inseguridad en la micro de las mujeres por sobre los hombres a nivel regional
 - Evalúa si el tabulado cumple con el estándar
 - Genera una visualización de la tabla evaluada
 
 --
 
 ```{r, eval=F}
-tramo_ocup <- create_tot(desocupado, dominios = tramo_edad, subpop = fdt, disenio = dc)
-eval_tramo <- evaluate_tot(tramo_ocup, publicar = T)
-tabla_html(eval_tramo)
 
-```
+enusc$muj_insg_micro = ifelse(enusc$P9_3_1 %in% c(1,2) & enusc$rph_sexo == 2,1 ,0)
+enusc$hom_insg_micro = ifelse(enusc$P9_3_1 %in% c(1,2) & enusc$rph_sexo == 1,1 ,0)
 
---
-- Calcula el total de desocupados según tramo etario y sexo  
-- Evalúa si el tabulado cumple con el estándar
-- Genera una visualización de la tabla evaluada
+dcPers <- svydesign(ids = ~Conglomerado, strata = ~VarStrat,
+                    data = enusc, weights = ~Fact_Pers)
 
-```{r, eval=F}
-tramo_sexo_ocup <- create_tot(desocupado, dominios = tramo_edad+sexo, subpop = fdt, disenio = dc)
-eval_tramo_sexo <- evaluate_tot(tramo_sexo_ocup, publicar = T)
-tabla_html(eval_tramo_sexo)
+est <-  create_prop(var = muj_insg_taxi, denominador = hom_insg_taxi,dominios = enc_region, disenio = dcPers)
+evaluate_tot(est, publicar = T) 
+
+tabla_html(est)
 
 ```
 
@@ -1042,18 +922,17 @@ background-position: 100% 0%
 
 # Un poco de práctica
 
-- Calcula el total de desocupados según tramo etario y region  
+- Calcula la proporción de los hogares revictimizado por region  
 - Evalúa si el tabulado cumple con el estándar
 - Genera una visualización de la tabla evaluada
 
 ```{r, eval=F}
-tramo_region_ocup <- create_tot(desocupado, dominios = tramo_edad+region, subpop = fdt, disenio = dc)
-eval_region_tramo <- evaluate_tot(tramo_region_ocup, publicar = T)
-tabla_html(eval_region_tramo)
+
+revict <- create_prop(RVA_DC,dominios = enc_region, subpop = VA_DC, disenio = dcHog)
+eval_revict <- evaluate_tot(tramo_region_ocup, publicar = T)
+tabla_html(eval_revict)
 
 ```
-
-
 
 ---
 
@@ -1066,6 +945,4 @@ class: center, middle
 
 ## Capacitación en uso paquete calidad
 
-## Proyecto Estratégico Servicios Compartidos para la Producción Estadística
-
-### Abril 2021
+### Diciembre 2021
