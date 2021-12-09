@@ -503,6 +503,9 @@ enusc$poseen_vehiculo = if_else(enusc$F1_1_1 == 1,1,0)
 
 dcHog <- svydesign(ids = ~Conglomerado, strata = ~VarStrat,
                      data = enusc, weights = ~Fact_Hog)
+
+options(survey.lonely.psu = "certainty")
+
 # G1: Durante los últimos doce meses, ¿a usted o a algún miembro de su hogar le fue robado su automóvil, camioneta o motocicleta?
 create_prop(var = robo_vehiculo, subpop = poseen_vehiculo, disenio = dcHog)
 ```
@@ -759,7 +762,6 @@ Veamos qué pasa con las proporciones que son mayores a 1, como la percepción d
 
 **En este caso, usamos el CV para hacer la evaluación y no el SE** 
 
-
 ---
 background-image: url("imagenes/fondo2.PNG")
 background-size: contain;
@@ -907,9 +909,10 @@ enusc$hom_insg_micro = ifelse(enusc$P9_3_1 %in% c(1,2) & enusc$rph_sexo == 1,1 ,
 dcPers <- svydesign(ids = ~Conglomerado, strata = ~VarStrat,
                     data = enusc, weights = ~Fact_Pers)
 
-est <-  create_prop(var = muj_insg_taxi, denominador = hom_insg_taxi,dominios = enc_region, disenio = dcPers)
-evaluate_tot(est, publicar = T) 
+options(survey.lonely.psu = "certainty")
 
+est <-  create_prop(var = muj_insg_micro, denominador = hom_insg_micro,dominios = enc_region, disenio = dcPers)
+est <-  evaluate_prop(est, publicar = T) 
 tabla_html(est)
 
 ```
@@ -929,7 +932,7 @@ background-position: 100% 0%
 ```{r, eval=F}
 
 revict <- create_prop(RVA_DC,dominios = enc_region, subpop = VA_DC, disenio = dcHog)
-eval_revict <- evaluate_tot(tramo_region_ocup, publicar = T)
+eval_revict <- evaluate_prop(tramo_region_ocup, publicar = T)
 tabla_html(eval_revict)
 
 ```
